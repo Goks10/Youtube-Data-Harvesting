@@ -19,7 +19,7 @@ st.markdown(page_by_img, unsafe_allow_html=True)
 
 api_service_name = "youtube"
 api_version = "v3"
-api_key ='AIzaSyDVXsjQzIam-YuLQEyxP7_U9ItUhIoRZTI'
+api_key = # SELECT YOUR OWN API KEY FROM GOOGLE AND PASTE IT AND EXECUTE CODE .
 
 youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=api_key)
 st.title('YOUTUBE')
