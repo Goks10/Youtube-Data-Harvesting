@@ -5,31 +5,18 @@ import mysql.connector
 
 mydb = mysql.connector.connect(host="localhost", user="root", password="")
 mycursor = mydb.cursor(buffered=True)
-page_by_img = """
-<style>
-[data-testid="stAppViewContainer"]{
-background-color: #5d6fff;
-opacity: 1;
-background-image: radial-gradient(circle at center center, #f8f8f8, #5d6fff), repeating-radial-gradient(circle at center center, #f8f8f8, #f8f8f8, 9px, transparent 18px, transparent 9px);
-background-blend-mode: multiply;
-}
-</style>
-"""
+page_by_img = f"""<style>.stApp {{background-image: url("{"https://img.freepik.com/premium-photo/youtube-logo-abstract-geometry_41204-9711.jpg?w=826"}");background-size: cover;}}</style>"""
 st.markdown(page_by_img, unsafe_allow_html=True)
 
 api_service_name = "youtube"
 api_version = "v3"
-api_key = # SELECT YOUR OWN API KEY FROM GOOGLE AND PASTE IT AND EXECUTE CODE .
+api_key ='AIzaSyDVXsjQzIam-YuLQEyxP7_U9ItUhIoRZTI'
 
 youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=api_key)
 st.title('YOUTUBE')
-st.markdown('''
-    :red[YouTube] :orange[Data] :red[Harvesting] :orange[and] :red[Warehousing]
-    :orange[using] :red[and] :orange[Streamlit].''')
-# YouTube Data Harvesting and Warehousing using SQL and Streamlit
+st.write('YouTube Data Harvesting and Warehousing using and Streamlit')
 channel_id=st.text_input("Enter Youtube Id")
 
-# channel_id = 'UCWCVYwLvaTq5Q90c4874X5g'
 def commentcount(count):
     if count > 100:
         return 100
@@ -48,10 +35,20 @@ def main():
     channel_videoCount = channel_data.get('statistics', {}).get('videoCount', 'Unknown')
     channel_viewCount = channel_data.get('statistics', {}).get('viewCount', 'Unknown')
     channel_logo_url = channel_data.get('snippet', {}).get('thumbnails', {}).get('default', {}).get('url', 'Unknown')
-    # ['thumbnails']['default']['url']
     st.subheader("channel_Logo", divider='rainbow')
     st.image(channel_logo_url,width=300)
     st.subheader(channel_name, divider='rainbow')
+    mycursor.execute('use youtube')
+    query = """INSERT INTO channel (Channel_Id, Channel_Name, Subscription_Count, 
+                Channel_Views, Channel_Description) 
+                VALUES (%s, %s, %s, %s, %s)"""
+    channel_data = (channel_id,channel_name,int(channel_subcount),int(channel_viewCount),channel_description)
+    mycursor.execute(query, channel_data)
+    query = """INSERT INTO playlist (Playlist_Id, Channel_Id) 
+                    VALUES (%s, %s )"""
+    playlist_data = (channel_playlist,channel_id)
+    mycursor.execute(query, playlist_data)
+    mydb.commit()
     request = youtube.playlistItems().list(part="snippet", playlistId=channel_playlist, maxResults=50)
     video_ids = []
 
@@ -80,6 +77,13 @@ def main():
         video_likeCount = video_data['statistics']['likeCount']
         video_favoriteCount = video_data['statistics']['favoriteCount']
         video_commentCount = video_data['statistics'].get('commentCount', 0)
+        query = """INSERT INTO video (Video_Id, Playlist_Id, Video_Name, Video_Description, 
+                    PublishedAt, View_Count, Like_Count, Favorite_Count, 
+                    Comment_Count, Duration, Thumbnail) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        video_data= (video_id,channel_playlist,video_name,video_description,video_publishedAt,video_viewCount,video_likeCount,video_favoriteCount,video_commentCount,video_duration,video_thumbnails)
+        mycursor.execute(query,video_data)
+        mydb.commit()
 
         if int(video_commentCount) > 0:
             try:
@@ -91,38 +95,15 @@ def main():
                         comment_author = comments["items"][j]["snippet"]['topLevelComment']["snippet"]['authorDisplayName']
                         comment_publishedAt = comments["items"][j]["snippet"]['topLevelComment']["snippet"]["publishedAt"]
                         
-                        query = """INSERT INTO youtube.youtube_channel_details
-                                (channel_name, channel_description, channel_playlist, channel_subcount,
-                                channel_videoCount, channel_viewCount, video_name, video_description,
-                                video_publishedAt, video_thumbnails, video_duration, video_viewCount,
-                                video_likeCount, video_favoriteCount, video_commentCount, comment_id,
-                                comment_text, comment_author, comment_publishedAt)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-                                
-                        values = (channel_name, channel_description, channel_playlist, channel_subcount,
-                                    channel_videoCount, channel_viewCount, video_name, video_description,
-                                    video_publishedAt, video_thumbnails, video_duration, video_viewCount,
-                                    video_likeCount, video_favoriteCount, video_commentCount, comment_id,
-                                    comment_text, comment_author, comment_publishedAt)
-
-                        mycursor.execute(query, values)
-                mydb.commit()
+                        query="""INSERT INTO comment (Video_Id, Comment_Text, Comment_Author, Comment_PublishedAt) 
+                        VALUES (%s, %s, %s, %s)"""
+                        comment_data=(video_id,comment_text,comment_author,comment_publishedAt)
+                        mycursor.execute(query,comment_data)
+                        mydb.commit()
             except Exception as e:
                 pass
         else:
-                    query = """INSERT INTO youtube.youtube_channel_details
-                    (channel_name, channel_description, channel_playlist, channel_subcount,
-                    channel_videoCount, channel_viewCount, video_name, video_description,
-                    video_publishedAt, video_thumbnails, video_duration, video_viewCount,
-                    video_likeCount, video_favoriteCount, video_commentCount)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-
-                    values = (channel_name, channel_description, channel_playlist, channel_subcount,
-                                    channel_videoCount, channel_viewCount, video_name, video_description,
-                                    video_publishedAt, video_thumbnails, video_duration, video_viewCount,
-                                    video_likeCount, video_favoriteCount, video_commentCount)
-                                    
-                    mycursor.execute(query, values)
+            pass
         mydb.commit()
 if st.button("Channel Details Table"):
     main()
